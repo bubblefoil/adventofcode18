@@ -8,7 +8,7 @@
 
 (def claims (read-ids "./aoc03.txt"))
 
-(def claim-pattern (re-pattern "#(\\d+)\\s@\\s(\\d+),(\\d+):\\s(\\d+)x(\\d+)"))
+(def claim-pattern (re-pattern #"#(\d+)\s@\s(\d+),(\d+):\s(\d+)x(\d+)"))
 
 (defn parse-rectangle
   "Claim to rectangle"
@@ -22,14 +22,9 @@
 (defn inches-in-rectangle
   "Returns all square inches within a rectangle."
   [[id [left top width height]]]
-  (let [horizontal (range left (+ left width))
+  (for [horizontal (range left (+ left width))
         vertical (range top (+ top height))]
-    (->> vertical
-         (mapcat
-           (fn [col]
-             (map
-               (fn [row] (vector id [row col]))
-               horizontal))))))
+    (vector id [horizontal vertical])))
 
 (defn parse-claims
   "Reads claims into a map of coordinates and lists of claim ids."
