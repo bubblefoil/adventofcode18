@@ -12,14 +12,6 @@
   [shift]
   (f/to-int (subs shift 15 17)))
 
-(defn minutes-asleep
-  [guard-awakeness-records]
-  (->> guard-awakeness-records
-       (map read-minute)
-       (partition 2)
-       (map #(apply range %))
-       (flatten)))
-
 (def guard-id-pattern (re-pattern #"#(\d+)"))
 
 (defn parse-guard-id
@@ -46,9 +38,13 @@
   [map f]
   (reduce-kv (fn [m k v] (assoc m k (f v))) {} map))
 
-(defn max-by
-  [f coll]
-  (reduce (fn [x y] (max-key f x y)) coll))
+(defn minutes-asleep
+  [guard-awakeness-records]
+  (->> guard-awakeness-records
+       (map read-minute)
+       (partition 2)
+       (map #(apply range %))
+       (flatten)))
 
 (defn process-shift-actions
   "Transforms grouped shift records."
@@ -68,28 +64,52 @@
        (:shifts)
        (actions-to-minutes-asleep)))
 
+(defn max-by
+  [f coll]
+  (reduce (fn ([x y] (max-key f x y)) ([] nil)) coll))
+
 (defn find-drowsiest-minute
   "Returns a vector containing the number of the guard's drowsiest minute
    and total count of days on which the guard was asleep during that minute."
   [minutes-asleep]
   (->> minutes-asleep
        (frequencies)
-       (max-by val)
-       ;get the key from the max entry
-       (first)))
+       (max-by val)))
 
 (defn find-drowsiest-guard
   "Finds the guard who sleeps the most."
   [shifts]
-  (->> shifts
-       (max-by (comp count :minutes-asleep val))))
+  (max-by (comp count :minutes-asleep val) shifts))
 
-(defn drowsiness-key
+(defn find-guard-with-drowsiest-minute
+  "Finds the guard who sleeps the most often during a particular minute."
+  [shifts]
+  (max-by
+    (comp
+      ;may be nil for fully awake shifts
+      #(or % 0)
+      ;The count from [minute day-count]
+      second
+      find-drowsiest-minute
+      :minutes-asleep
+      val)
+    shifts))
+
+(defn find-the-answer
+  "Finds the solution based on given guard lookup function."
+  [shifts guard-fn]
+  (let [[id {minutes-asleep :minutes-asleep}] (guard-fn shifts)
+        [drowsiest-minute _] (find-drowsiest-minute minutes-asleep)]
+    (* id drowsiest-minute)))
+
+(defn strategy-1
   "Multiplies if of the guard who sleeps the most by the minute during which they sleep most often."
   [shifts]
-  (let [[id {minutes-asleep :minutes-asleep}] (find-drowsiest-guard shifts)
-        drowsiest-minute (find-drowsiest-minute minutes-asleep)]
-    (* id drowsiest-minute)))
+  (find-the-answer shifts find-drowsiest-guard))
+
+(defn strategy-2
+  [shifts]
+  (find-the-answer shifts find-guard-with-drowsiest-minute))
 
 (comment
   (def example1 ["[1518-11-01 00:00] Guard #10 begins shift"
@@ -127,6 +147,11 @@
   (read-shifts shifts)
   (def the-drowsiest (find-drowsiest-guard (read-shifts shifts))) ;
   (find-drowsiest-minute (get (read-shifts shifts) (:guard the-drowsiest))) ;
-  (drowsiness-key (read-shifts example))                    ;
+  (strategy-1 (read-shifts example))                        ;
+  ;Part I solution
+  (strategy-1 (read-shifts shifts))                         ;
+  ;Part II
+  (find-guard-with-drowsiest-minute (read-shifts (concat example1 example2)))
+  (strategy-2 (read-shifts example))                        ;4455
   ;Part II solution
-  (drowsiness-key (read-shifts shifts)))                    ;
+  (strategy-2 (read-shifts shifts)))                        ;
