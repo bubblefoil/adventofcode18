@@ -1,6 +1,7 @@
 (ns adventofcode18.aoc04
   (:require [clojure.java.io :as io]
-            [adventofcode18.file :as f]))
+            [adventofcode18.file :as f]
+            [adventofcode18.util :as u]))
 
 (defn read-ids [res-name]
   (f/lines-of (io/resource res-name)))
@@ -64,27 +65,23 @@
        (:shifts)
        (actions-to-minutes-asleep)))
 
-(defn max-by
-  [f coll]
-  (reduce (fn ([x y] (max-key f x y)) ([] nil)) coll))
-
 (defn find-drowsiest-minute
   "Returns a vector containing the number of the guard's drowsiest minute
    and total count of days on which the guard was asleep during that minute."
   [minutes-asleep]
   (->> minutes-asleep
        (frequencies)
-       (max-by val)))
+       (u/max-by val)))
 
 (defn find-drowsiest-guard
   "Finds the guard who sleeps the most."
   [shifts]
-  (max-by (comp count :minutes-asleep val) shifts))
+  (u/max-by (comp count :minutes-asleep val) shifts))
 
 (defn find-guard-with-drowsiest-minute
   "Finds the guard who sleeps the most often during a particular minute."
   [shifts]
-  (max-by
+  (u/max-by
     (comp
       ;may be nil for fully awake shifts
       #(or % 0)
