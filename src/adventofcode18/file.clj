@@ -8,6 +8,9 @@
   ([path fn] (with-open [rdr (io/reader path)]
                (doall (map fn (line-seq rdr))))))
 
+(defn lines-of-resource [res]
+  (lines-of (io/resource res)))
+
 (defn words [str] (split str #"\s"))
 
 (def to-int #(Integer/parseInt %))
