@@ -53,6 +53,16 @@
        ;just take the points
        (map second)))
 
+(defn sum-of-distances
+  "Find the sum of distances between all points and p."
+  [p points]
+  (->> points
+       ;map to [dist point]
+       (pmap #(vector (manhattan % p) %))
+       ;just take the distances
+       (map first)
+       (reduce +)))
+
 (defn one-or-none
   "Returns the only element in collection, or nil if there are more."
   [coll]
@@ -60,13 +70,15 @@
     (first coll)
     nil))
 
+(def the-closest-point (comp one-or-none closest))
+
 (defn fill-grid
   "Returns points mapped to grid coordinates by the lowest Manhattan distance.
   {[x y]->[px py]}"
-  [points]
+  [f points]
   (let [canvas (rectangle (bbox points))]
     (reduce
-      (fn [acc p] (assoc acc p (one-or-none (closest p points))))
+      (fn [acc p] (assoc acc p (f p points)))
       {}
       canvas)))
 
@@ -99,7 +111,7 @@
 (defn largest-area
   "Find the largest area closest to a single point."
   [points]
-  (let [grid (fill-grid points)
+  (let [grid (fill-grid the-closest-point points)
         finite? (complement (fn [[point _]] (infinite-area? point grid)))]
     (->> grid
          ;just the points
@@ -113,6 +125,16 @@
          ;the largest area
          (u/max-by second)
          (second))))
+
+(defn nearest-region
+  "Part II - size of the region closest to all points."
+  [distance points]
+  (let [grid (fill-grid sum-of-distances points)
+        close-enough #(< % distance)]
+    (->> grid
+         (vals)
+         (filter close-enough)
+         count)))
 
 (defn plot
   "Transform map of points to a 2d array."
@@ -133,13 +155,16 @@
   (def points (parse e1))
   ;(def points (read-points))
   (bbox points)
-  (count (perimeter (keep identity (vals (fill-grid points)))))
+  (count (perimeter (keep identity (vals (fill-grid the-closest-point points)))))
   (rectangle (bbox points))
   (manhattan [1 4] [2 0])
   (closest [1 4] points)
-  (clojure.pprint/pprint (plot (fill-grid points)))
+  (clojure.pprint/pprint (plot (fill-grid the-closest-point points)))
   (largest-area points)
-  (time (fill-grid (read-points)))
+  (time (fill-grid the-closest-point (read-points)))
   ;Part I
-  (largest-area (read-points)))                             ;3722
-;Part II
+  (largest-area (read-points))                              ;3722
+  ;Part II
+  (fill-grid sum-of-distances points)
+  (nearest-region 32 points)
+  (nearest-region 10000 (read-points)))
