@@ -7,3 +7,8 @@
 (defn min-by
   [f coll]
   (reduce (fn ([x y] (min-key f x y)) ([] nil)) coll))
+
+(defn spy
+  "Prints and returns x"
+  ([x] (println x) x)
+  ([what x] (println what x) x))

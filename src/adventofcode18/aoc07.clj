@@ -1,5 +1,7 @@
 (ns adventofcode18.aoc07
-  (:require [adventofcode18.file :as f]))
+  (:require [adventofcode18.file :as f]
+            [adventofcode18.util :as u]
+            [clojure.set :as s]))
 
 (defn parse-line
   [s]
@@ -24,14 +26,13 @@
        (map second)
        (not-any? #{step})))
 
-(defn ready-step [steps-to-do instructions]
-  ;(println steps-to-do instructions)
+(defn ready-steps
+  [steps-to-do instructions]
   (->> steps-to-do
        (filter #(ready? % instructions))
-       (sort)
-       (first)))
+       (sort)))
 
-(defn remove-step
+(defn remove-step-from-instructions
   "Returns instructions without a specific step."
   [step instructions]
   (filter (fn [instr] (not= step (first instr))) instructions))
@@ -41,12 +42,75 @@
   (loop [steps-left (get-steps full-instructions)
          instructions-left full-instructions
          steps-done []]
-    (if-let [next-step (ready-step steps-left instructions-left)]
+    (if-let [next-step (first (ready-steps steps-left instructions-left))]
       (recur
         (remove #{next-step} steps-left)
-        (remove-step next-step instructions-left)
+        (remove-step-from-instructions next-step instructions-left)
         (conj steps-done next-step))
       steps-done)))
+
+;Part II
+
+;(def step-fixed-duration 0)
+;(def workers 2)
+(def step-fixed-duration 60)
+(def workers 4)
+
+(defn duration
+  "Returns step duration"
+  [step]
+  (let [c (first step)
+        step-duration (- (inc (int c)) (int \A))]
+    (+ step-fixed-duration step-duration)))
+
+(defn steps->durations
+  "Groups steps by their durations."
+  [time-offset steps]
+  (map (fn [step] {:step-name step :step-finish-time (+ time-offset (duration step))}) steps))
+
+(defn next-step-finish-time
+  "Returns the step with nearest finish time or alphabetically lower name."
+  [step-durations]
+  (->> step-durations
+       (map :step-finish-time)
+       (reduce min)))
+
+(defn remove-prerequisite-steps-from-instructions
+  [steps instructions]
+  (remove #((set steps) (first %)) instructions))
+
+(defn wip-steps [wip]
+  (->> wip
+       (map :step-name)
+       (set)))
+
+(defn next-ready-steps
+  [steps-done wip instructions]
+  (let [steps (s/difference (get-steps instructions) steps-done)
+        remaining-instructions (remove-prerequisite-steps-from-instructions steps-done instructions)]
+    (->> steps
+         (filter #(ready? % remaining-instructions))
+         (remove (wip-steps wip))
+         (sort))))
+
+(defn building-steps-tree
+  [instructions]
+  (loop [steps-done #{}
+         wip []
+         elapsed-time 0]
+    ;(println "time:" elapsed-time steps-done wip)
+    (let [wip-done (filter #(<= (:step-finish-time %) elapsed-time) wip)
+          wip-left (remove (set wip-done) wip)
+          steps-done-now (s/union steps-done (wip-steps wip-done))
+          idle-worker-count (- workers (count wip-left))
+          more-work (take idle-worker-count (next-ready-steps steps-done-now wip-left instructions))
+          next-wip (concat wip-left (steps->durations elapsed-time more-work))]
+      (if (not-empty next-wip)
+        (recur
+          steps-done-now
+          next-wip
+          (next-step-finish-time next-wip))
+        elapsed-time))))
 
 (comment
   (def in ["Step C must be finished before step A can begin."
@@ -63,9 +127,13 @@
   ;---->F-----
   (def instructions (read-instructions in))
   (get-steps instructions)
-  (ready-step (get-steps instructions) instructions)
-  (remove-step "C" instructions)
+  (remove-step-from-instructions "C" instructions)
+  (ready-steps (get-steps instructions) (remove-step-from-instructions "C" instructions))
   ;Part I
-  (building-steps-order (read-instructions in));=> ["C" "A" "B" "D" "F" "E"]
-  (clojure.string/join (building-steps-order (read-instructions (f/lines-of-resource "./aoc07.txt")))))
-;=> ["C" "A" "B" "D" "F" "E"]
+  (building-steps-order (read-instructions in))             ;=> ["C" "A" "B" "D" "F" "E"]
+  (clojure.string/join (building-steps-order (read-instructions (f/lines-of-resource "./aoc07.txt"))))
+  ;Part II
+  (remove-prerequisite-steps-from-instructions ["C"] instructions)
+  (steps->durations 0 ["A" "C" "E"])
+  (building-steps-tree (read-instructions in))              ;15, 2w, 0s
+  (building-steps-tree (read-instructions (f/lines-of-resource "./aoc07.txt")))) ;980, 4w, 60s
