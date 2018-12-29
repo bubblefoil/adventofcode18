@@ -120,3 +120,41 @@
   ;Part I
   (part-1))
 
+;Part II
+(defn grow-until-stable [rules state]
+  "Run the evolution until the increment of sums between iterations is stable."
+  (loop [new-state state
+         i 0
+         last-sum 0
+         last-sum-diffs ()]
+    (let [new-generation (inc i)
+          new-state (next-generation rules new-state)
+          new-sum (sum new-state)
+          new-sum-diffs (conj (take 4 last-sum-diffs) (- new-sum last-sum))]
+      (if (and (pos-int? i)(apply = new-sum-diffs))
+        {:last-sum new-sum :stable-sum-inc (first new-sum-diffs) :generation new-generation}
+        (recur new-state new-generation new-sum new-sum-diffs)))))
+
+(defn analyse [in]
+  (let [state (parse-initial (first in))
+        rules (parse-rules (rest in))]
+    (grow-until-stable rules state)))
+
+(def gen 50000000000)
+
+(defn part-2
+  "Solution"
+  [in]
+  (let [{last-sum :last-sum
+         generation :generation
+         increment :stable-sum-inc} (analyse in)
+        remaining-generations (- gen generation)]
+    (+ last-sum (* remaining-generations increment))))
+
+(comment
+  (time (analyse example))
+  ;"Elapsed time: 88.529623 msecs"
+  ;=> 2500000001175
+  (time (part-2 (f/lines-of-resource "./aoc12.txt"))))
+
+
