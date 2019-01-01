@@ -8,6 +8,12 @@
   ([path fn] (with-open [rdr (io/reader path)]
                (doall (map fn (line-seq rdr))))))
 
+(defn map-chars-indexed
+  "Loads lines from a file, optionally transformed by given function."
+  ([path] (lines-of path identity))
+  ([path fn] (with-open [rdr (io/reader path)]
+               (doall (map fn (line-seq rdr))))))
+
 (defn lines-of-resource [res]
   (lines-of (io/resource res)))
 
