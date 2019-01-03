@@ -136,26 +136,30 @@
         (rest carts))
       last-railway)))
 
+(defn loops
+  [n f x]
+  (reduce (fn [fx _] (f fx)) x (range n)))
+
 (defn ticks
   [n railway]
-  (reduce (fn [r _] (tick r)) railway (range n)))
+  (loops n tick railway))
 
 (defn- collide? [cart1 cart2]
   (= (:location cart1) (:location cart2)))
 
 (defn- detect-collision
-  [{carts :carts} cart]
+  [other-carts cart]
   (first
     (filter
       (partial collide? cart)
-      (remove #{cart} carts))))
+      (remove #{cart} other-carts))))
 
 (defn find-first-collision-location [railway]
   (loop [last-railway railway
          carts (get-cart-queue railway)]
     (if-let [cart (first carts)]
       (let [next-railway (move-cart last-railway cart)
-            collision (detect-collision next-railway cart)]
+            collision (detect-collision (:carts next-railway) cart)]
         (if (not collision)
           (recur
             next-railway
@@ -185,3 +189,39 @@
   (find-first-collision-location (read-map (f/lines-of-resource "./aoc13.txt")))
   (part-1))
 
+(defn tick-with-collisions [railway]
+  "Return railway with cart arrangement after one tick.
+  Removes all colliding carts."
+  (loop [last-railway railway
+         carts (get-cart-queue railway)]
+    (if (empty? carts)
+      last-railway
+      (let [next-railway (move-cart last-railway (first carts))
+            moved-cart (first (:carts next-railway))]
+        (if-let [colliding-cart (detect-collision (:carts next-railway) moved-cart)]
+          (do (println "collision of" colliding-cart)
+              (recur
+                (update next-railway :carts #(remove #{moved-cart colliding-cart} %))
+                (remove #{colliding-cart} (rest carts))))
+          (recur
+            next-railway
+            (rest carts)))))))
+
+(defn find-last-cart-going [railway]
+  (loop [last-railway railway]
+    (if (some? (second (:carts last-railway)))
+      (recur (tick-with-collisions last-railway))
+      (first (:carts last-railway)))))
+
+(defn part-2 []
+  (->> (f/lines-of-resource "./aoc13.txt")
+       (read-map)
+       (find-last-cart-going)
+       (:location)
+       (print-location)))
+
+(comment
+  (:carts (loops 14 tick-with-collisions (read-map (f/lines-of-resource "./aoc13ex.txt"))))
+  (:carts (loops 3 tick-with-collisions (read-map (f/lines-of-resource "./aoc13ex2.txt"))))
+  (find-last-cart-going (read-map (f/lines-of-resource "./aoc13ex2.txt")))
+  (part-2))
