@@ -1,6 +1,7 @@
 (ns adventofcode18.aoc13
   (:require [clojure.java.io :as io]
-            [adventofcode18.file :as f]))
+            [adventofcode18.file :as f]
+            [adventofcode18.util :as u]))
 
 ;Parser
 (defn map-chars
@@ -136,13 +137,9 @@
         (rest carts))
       last-railway)))
 
-(defn loops
-  [n f x]
-  (reduce (fn [fx _] (f fx)) x (range n)))
-
 (defn ticks
   [n railway]
-  (loops n tick railway))
+  (u/loops n tick railway))
 
 (defn- collide? [cart1 cart2]
   (= (:location cart1) (:location cart2)))
@@ -221,7 +218,7 @@
        (print-location)))
 
 (comment
-  (:carts (loops 14 tick-with-collisions (read-map (f/lines-of-resource "./aoc13ex.txt"))))
-  (:carts (loops 3 tick-with-collisions (read-map (f/lines-of-resource "./aoc13ex2.txt"))))
+  (:carts (u/loops 14 tick-with-collisions (read-map (f/lines-of-resource "./aoc13ex.txt"))))
+  (:carts (u/loops 3 tick-with-collisions (read-map (f/lines-of-resource "./aoc13ex2.txt"))))
   (find-last-cart-going (read-map (f/lines-of-resource "./aoc13ex2.txt")))
   (part-2))
