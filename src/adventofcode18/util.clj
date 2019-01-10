@@ -12,6 +12,14 @@
   [n f x]
   (reduce (fn [fx _] (f fx)) x (range n)))
 
+(defn loop-while
+  "Repeatedly applies f to x, then to f(x) etc., until pred xn returns false."
+  [pred f x]
+  (loop [fx x]
+    (if (pred fx)
+      (recur (f fx))
+      fx)))
+
 (defn spy
   "Prints and returns x"
   ([x] (println x) x)
