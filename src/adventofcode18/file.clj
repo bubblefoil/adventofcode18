@@ -14,6 +14,18 @@
   ([path fn] (with-open [rdr (io/reader path)]
                (doall (map fn (line-seq rdr))))))
 
+(defn map-chars-indexed
+  "Returns a seq of results of applying f
+   to each character of every line, followed by its line and column number."
+  [f lines]
+  (->> lines
+       (map-indexed
+         (fn [line-idx line]
+           (map-indexed
+             (fn [char-idx c] (f c line-idx char-idx))
+             line)))
+       (apply concat)))
+
 (defn lines-of-resource [res]
   (lines-of (io/resource res)))
 

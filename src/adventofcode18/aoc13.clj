@@ -4,18 +4,6 @@
             [adventofcode18.util :as u]))
 
 ;Parser
-(defn map-chars
-  "Returns a seq of results of applying f
-   to each character of every line, followed by its line and column number."
-  [f lines]
-  (->> lines
-       (map-indexed
-         (fn [line-idx line]
-           (map-indexed
-             (fn [char-idx c] (f c line-idx char-idx))
-             line)))
-       (flatten)))
-
 (defn read-tile
   [c il ic]
   (condp contains? c
@@ -40,7 +28,7 @@
   (zipmap [:x :y] v))
 
 (defn read-map [lines]
-  (let [tiles (map-chars read-tile lines)
+  (let [tiles (f/map-chars-indexed read-tile lines)
         railroad (apply merge-with merge tiles)]
     (update railroad :carts #(keys-to-vals % vec->pos :location))))
 
